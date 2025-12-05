@@ -1,98 +1,140 @@
+from typing import TypeVar, Generic, Type, Optional, List, Dict, Any
+from sqlalchemy.orm import Session
+from sqlalchemy import desc, asc
 from pydantic import BaseModel
-from sqlalchemy import delete, insert, select, update
-from sqlalchemy.exc import IntegrityError
+from app.database import get_db
+import math
+
+ModelType = TypeVar('ModelType')
+SchemaType = TypeVar('SchemaType', bound=BaseModel)
+CreateSchemaType = TypeVar('CreateSchemaType', bound=BaseModel)
+UpdateSchemaType = TypeVar('UpdateSchemaType', bound=BaseModel)
 
 
-from app.database.database import Base
-from app.exceptions.base import ObjectAlreadyExistsError
-
-
-class BaseRepository:
-    model: Base = None
-    schema: BaseModel = None
-
-    def __init__(self, session):
-        self.session = session
-
-    async def get_filtered(
-        self,
-        limit: int | None = None,
-        offset: int | None = None,
-        *filter,
-        **filter_by,
-    ) -> list[BaseModel]:
-        filter_by = {k: v for k, v in filter_by.items() if v is not None}
-        filter_ = [v for v in filter if v is not None]
-
-        query = select(self.model).filter(*filter_).filter_by(**filter_by)
-
-        if limit is not None and offset is not None:
-            query = query.limit(limit).offset(offset)
-        # print(query.compile(bind=engine, compile_kwargs={"literal_binds": True}))
-        result = await self.session.execute(query)
-        result = [
-            self.schema.model_validate(model, from_attributes=True)
-            for model in result.scalars().all()
-        ]
-
-        return result
-
-    async def get_all(self, *args, **kwargs) -> list[BaseModel]:
-        """Возращает все записи в БД из связаной таблицы"""
-        return await self.get_filtered(*args, **kwargs)
-
-    async def get_one_or_none(self, **filter_by) -> None | BaseModel:
-        query = select(self.model).filter_by(**filter_by)
-
-        result = await self.session.execute(query)
-
-        model = result.scalars().one_or_none()
-        if model is None:
-            return None
-        result = self.schema.model_validate(model, from_attributes=True)
-        return result
-
-    async def add(self, data: BaseModel):
-        try:
-            add_stmt = (
-                insert(self.model).values(**data.model_dump()).returning(self.model)
-            )
-            # print(add_stmt.compile(compile_kwargs={"literal_binds": True}))
-
-            result = await self.session.execute(add_stmt)
-
-            model = result.scalars().one_or_none()
-            if model is None:
-                return None
-            return self.schema.model_validate(model, from_attributes=True)
-
-        except IntegrityError as exc:
-            raise ObjectAlreadyExistsError from exc
-
-    async def add_bulk(self, data: list[BaseModel]) -> None | BaseModel:
-        """
-        Метод для множественного добавления данных в таблицу
-        """
-        add_stmt = insert(self.model).values([item.model_dump() for item in data])
-        # print(add_stmt.compile(compile_kwargs={"literal_binds": True}))
-        await self.session.execute(add_stmt)
-
-    async def delete(self, *filters, **filter_by) -> None:
-        delete_stmt = delete(self.model)
+class BaseRepository(Generic[ModelType, SchemaType, CreateSchemaType, UpdateSchemaType]):
+    """Базовый класс репозитория с CRUD операциями"""
+    
+    def __init__(self, model: Type[ModelType], schema: Type[SchemaType]):
+        self.model = model
+        self.schema = schema
+    
+    def get(self, db: Session, id: int) -> Optional[SchemaType]:
+        """Получить объект по ID"""
+        obj = db.query(self.model).filter(self.model.id == id).first()
+        if obj:
+            return self.schema.from_orm(obj)
+        return None
+    
+    def get_multi(
+        self, 
+        db: Session, 
+        skip: int = 0, 
+        limit: int = 100,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: Optional[str] = None,
+        order_desc: bool = False
+    ) -> List[SchemaType]:
+        """Получить несколько объектов с фильтрацией и сортировкой"""
+        query = db.query(self.model)
+        
+        # Применяем фильтры
         if filters:
-            delete_stmt = delete_stmt.where(*filters)
-        if filter_by:
-            delete_stmt = delete_stmt.filter_by(**filter_by)
-
-        await self.session.execute(delete_stmt)
-        await self.session.commit()
-
-    async def edit(
-        self, data: BaseModel, exclude_unset: bool = False, **filter_by
-    ) -> None:
-        edit_stmt = (
-            update(self.model)
-            .filter_by(**filter_by)
-            .values(**data.model_dump(exclude_unset=exclude_unset))
-        )
-        await self.session.execute(edit_stmt)
+            for key, value in filters.items():
+                if hasattr(self.model, key):
+                    if isinstance(value, str):
+                        query = query.filter(getattr(self.model, key).like(f"%{value}%"))
+                    else:
+                        query = query.filter(getattr(self.model, key) == value)
+        
+        # Применяем сортировку
+        if order_by and hasattr(self.model, order_by):
+            if order_desc:
+                query = query.order_by(desc(getattr(self.model, order_by)))
+            else:
+                query = query.order_by(asc(getattr(self.model, order_by)))
+        
+        # Применяем пагинацию
+        query = query.offset(skip).limit(limit)
+        
+        objects = query.all()
+        return [self.schema.from_orm(obj) for obj in objects]
+    
+    def get_paginated(
+        self,
+        db: Session,
+        page: int = 1,
+        per_page: int = 20,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: Optional[str] = None,
+        order_desc: bool = False
+    ) -> Dict[str, Any]:
+        """Получить пагинированный список объектов"""
+        skip = (page - 1) * per_page
+        
+        # Получаем общее количество
+        count_query = db.query(self.model)
+        if filters:
+            for key, value in filters.items():
+                if hasattr(self.model, key):
+                    if isinstance(value, str):
+                        count_query = count_query.filter(getattr(self.model, key).like(f"%{value}%"))
+                    else:
+                        count_query = count_query.filter(getattr(self.model, key) == value)
+        total = count_query.count()
+        
+        # Получаем данные
+        data = self.get_multi(db, skip, per_page, filters, order_by, order_desc)
+        
+        return {
+            "data": data,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": math.ceil(total / per_page) if total > 0 else 1
+        }
+    
+    def create(self, db: Session, obj_in: CreateSchemaType) -> SchemaType:
+        """Создать новый объект"""
+        obj_data = obj_in.dict(exclude_unset=True)
+        db_obj = self.model(**obj_data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return self.schema.from_orm(db_obj)
+    
+    def update(self, db: Session, id: int, obj_in: UpdateSchemaType) -> Optional[SchemaType]:
+        """Обновить объект"""
+        db_obj = db.query(self.model).filter(self.model.id == id).first()
+        if not db_obj:
+            return None
+        
+        update_data = obj_in.dict(exclude_unset=True)
+        for field, value in update_data.items():
+            if hasattr(db_obj, field):
+                setattr(db_obj, field, value)
+        
+        db.commit()
+        db.refresh(db_obj)
+        return self.schema.from_orm(db_obj)
+    
+    def delete(self, db: Session, id: int) -> bool:
+        """Удалить объект"""
+        db_obj = db.query(self.model).filter(self.model.id == id).first()
+        if not db_obj:
+            return False
+        
+        db.delete(db_obj)
+        db.commit()
+        return True
+    
+    def count(self, db: Session, filters: Optional[Dict[str, Any]] = None) -> int:
+        """Получить количество объектов"""
+        query = db.query(self.model)
+        if filters:
+            for key, value in filters.items():
+                if hasattr(self.model, key):
+                    if isinstance(value, str):
+                        query = query.filter(getattr(self.model, key).like(f"%{value}%"))
+                    else:
+                        query = query.filter(getattr(self.model, key) == value)
+        return query.count()
