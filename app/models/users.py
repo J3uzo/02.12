@@ -8,8 +8,8 @@ if TYPE_CHECKING:
     from app.model.roles import RoleModel
 
 
-class AdminModel(Base):
-    __tablename__ = "admins"
+class UserModel(Base):
+    __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     login: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
