@@ -1,44 +1,28 @@
-from app.repositories.base import BaseRepository
-from app.model.roles import RoleModel
-from app.schemes.roles import SRoleGet
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-class RoleRepository(BaseRepository[RoleModel, SRoleGet, SRoleGet, SRoleGet]):
+from app.models.roles import RoleModel
+from app.repositories.base import BaseRepository
+from app.schemes.roles import SRoleGet
+from app.schemes.relations_users_roles import SRoleGetWithRels
+
+
+class RolesRepository(BaseRepository):
     model = RoleModel
     schema = SRoleGet
-    
-    def get_with_admins(self, db, role_id: int):
-        """Получить роль с администраторами"""
-        from app.model.admins import AdminModel
-        
-        role = db.query(self.model).filter(self.model.id == role_id).first()
-        if not role:
+
+    async def get_one_or_none_with_users(self, **filter_by):
+        query = (
+            select(self.model)
+            .filter_by(**filter_by)
+            .options(selectinload(self.model.users))
+        )
+
+        result = await self.session.execute(query)
+
+        model = result.scalars().one_or_none()
+        if model is None:
             return None
-        
-        result = {
-            "id": role.id,
-            "admin": role.admin,
-            "user": role.user,
-            "moderator": role.moderator,
-            "admins": []
-        }
-        
-        # Администраторы с этой ролью
-        admins = db.query(AdminModel).filter(AdminModel.role_id == role_id).all()
-        for admin in admins:
-            admin_data = {
-                "id": admin.id,
-                "name": admin.name,
-                "login": admin.login
-            }
-            result["admins"].append(admin_data)
-        
+
+        result = SRoleGetWithRels.model_validate(model, from_attributes=True)
         return result
-    
-    def get_role_by_name(self, db, role_name: str):
-        """Получить роль по названию"""
-        role = db.query(self.model).filter(
-            (self.model.admin == role_name) |
-            (self.model.user == role_name) |
-            (self.model.moderator == role_name)
-        ).first()
-        return role

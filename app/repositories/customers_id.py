@@ -1,14 +1,14 @@
 from app.repositories.base import BaseRepository
-from app.model.customers_id import Customer_idModel
-from app.schemes.customers_id import SCustomerIdGet
+from app.models.customers_id import Customer_idModel
+from app.schemes.customers_id import SCustomer_idGet
 
-class CustomerIdRepository(BaseRepository[Customer_idModel, SCustomerIdGet, SCustomerIdGet, SCustomerIdGet]):
+class CustomerIdRepository(BaseRepository[Customer_idModel, SCustomer_idGet, SCustomer_idGet, SCustomerIdGet]):
     model = Customer_idModel
-    schema = SCustomerIdGet
+    schema = SCustomer_idGet
     
     def get_with_deals(self, db, customer_id_id: int):
         """Получить ID клиента со сделками"""
-        from app.model.deals import DealModel
+        from app.models.deals import DealModel
         
         customer_id_obj = db.query(self.model).filter(self.model.id == customer_id_id).first()
         if not customer_id_obj:
