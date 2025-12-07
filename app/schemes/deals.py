@@ -1,36 +1,30 @@
 from typing import TYPE_CHECKING
-
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from app.schemes.roles import SRoleGet
+    from app.schemes.customers import SCustomerGet
+    from app.schemes.stages import SStageGet
 
 
-class SUserAddRequest(BaseModel):
+class SDealAdd(BaseModel):
     name: str
-    email: EmailStr
-    password: str
-    role_id: int
+    customer_id: int
+    amount: float
+    stage_id: int
+    probability: str
+    date: str
+    notes: str 
 
 
-class SUserAdd(BaseModel):
-    name: str
-    email: EmailStr
-    hashed_password: str
-    role_id: int
-
-
-class SUserAuth(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class SUserGet(SUserAdd):
+class SDealGet(SDealAdd):
     id: int
 
 
-class SUserPatch(BaseModel):
-    name: str | None = None
-    email: EmailStr | None = None
-    hashed_password: str | None = None
-    role_id: int | None = None
+class SDealPatch(BaseModel):
+    name: str 
+    customer_id: int 
+    amount: float 
+    stage_id: int 
+    probability: str
+    date: str 
+    notes: str 

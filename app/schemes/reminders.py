@@ -1,36 +1,26 @@
 from typing import TYPE_CHECKING
-
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from app.schemes.roles import SRoleGet
+    from app.schemes.types import STypeGet
+    from app.schemes.contacts import SContactGet
 
 
-class SUserAddRequest(BaseModel):
+class SReminderAdd(BaseModel):
     name: str
-    email: EmailStr
-    password: str
-    role_id: int
+    description: str | None = None
+    date: str
+    type_id: int | None = None
+    contact_id: int | None = None
 
 
-class SUserAdd(BaseModel):
-    name: str
-    email: EmailStr
-    hashed_password: str
-    role_id: int
-
-
-class SUserAuth(BaseModel):
-    email: EmailStr
-    password: str
-
-
-class SUserGet(SUserAdd):
+class SReminderGet(SReminderAdd):
     id: int
 
 
-class SUserPatch(BaseModel):
+class SReminderPatch(BaseModel):
     name: str | None = None
-    email: EmailStr | None = None
-    hashed_password: str | None = None
-    role_id: int | None = None
+    description: str | None = None
+    date: str | None = None
+    type_id: int | None = None
+    contact_id: int | None = None
