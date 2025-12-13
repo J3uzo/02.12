@@ -5,7 +5,7 @@ from app.models.tags import TagModel
 from app.repositories.base import BaseRepository
 from app.schemes.tags import STagGet
 
-class TagRepository(BaseRepository[TagModel, STagGet]):
+class TagsRepository(BaseRepository[TagModel, STagGet]):
     model = TagModel
     schema = STagGet
     

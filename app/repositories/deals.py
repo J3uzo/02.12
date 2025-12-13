@@ -4,9 +4,9 @@ from sqlalchemy.orm import selectinload
 from app.models.deals import DealModel
 from app.repositories.base import BaseRepository
 from app.schemes.deals import SDealGet
-from app.schemes.relations import SDealGetWithRels
+from app.schemes.relations_users_roles import SDealGetWithRels
 
-class DealRepository(BaseRepository[DealModel, SDealGet]):
+class DealsRepository(BaseRepository[DealModel, SDealGet]):
     model = DealModel
     schema = SDealGet
     

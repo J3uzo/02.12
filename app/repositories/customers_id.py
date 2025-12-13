@@ -2,7 +2,7 @@ from app.repositories.base import BaseRepository
 from app.models.customers_id import Customer_idModel
 from app.schemes.customers_id import SCustomer_idGet
 
-class CustomerIdRepository(BaseRepository[Customer_idModel, SCustomer_idGet, SCustomer_idGet, SCustomerIdGet]):
+class Customers_idRepository(BaseRepository[Customer_idModel, SCustomer_idGet, SCustomer_idGet, SCustomer_idGet]):
     model = Customer_idModel
     schema = SCustomer_idGet
     

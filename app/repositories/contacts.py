@@ -5,7 +5,7 @@ from app.models.contacts import ContactModel
 from app.repositories.base import BaseRepository
 from app.schemes.contacts import SContactGet
 
-class ContactRepository(BaseRepository[ContactModel, SContactGet]):
+class ContactsRepository(BaseRepository[ContactModel, SContactGet]):
     model = ContactModel
     schema = SContactGet
     

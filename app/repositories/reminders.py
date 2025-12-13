@@ -4,9 +4,9 @@ from sqlalchemy.orm import selectinload
 from app.models.reminders import ReminderModel
 from app.repositories.base import BaseRepository
 from app.schemes.reminders import SReminderGet
-from app.schemes.relations import SReminderGetWithRels
+from app.schemes.relations_users_roles import SReminderGetWithRels
 
-class ReminderRepository(BaseRepository[ReminderModel, SReminderGet]):
+class RemindersRepository(BaseRepository[ReminderModel, SReminderGet]):
     model = ReminderModel
     schema = SReminderGet
     

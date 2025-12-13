@@ -5,8 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.database import Base
 
 if TYPE_CHECKING:
-    from app.model.types import TypeModel
-    from app.model.contacts import ContactModel
+    from app.models.types import RemindTypeModel
+    from app.models.contacts import ContactModel
 
 
 class ReminderModel(Base):
@@ -16,6 +16,6 @@ class ReminderModel(Base):
     description: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     data: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     type_id: Mapped[str] = mapped_column(ForeignKey("types.id"), nullable=False)
-    type: Mapped["TypeModel"] = relationship(back_populates="types")
+    type: Mapped["RemindTypeModel"] = relationship(back_populates="types")
     contact_id: Mapped[int] = mapped_column(ForeignKey("contacts.id"), nullable=False)
     contact: Mapped["ContactModel"] = relationship(back_populates="contacts")

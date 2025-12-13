@@ -1,12 +1,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.models.types import TypeModel
+from app.models.types import RemindTypeModel
 from app.repositories.base import BaseRepository
 from app.schemes.types import STypeGet
 
-class TypeRepository(BaseRepository[TypeModel, STypeGet]):
-    model = TypeModel
+class TypesRepository(BaseRepository[RemindTypeModel, STypeGet]):
+    model = RemindTypeModel
     schema = STypeGet
     
     def get_with_reminders(self, type_id: int):

@@ -5,7 +5,7 @@ from app.models.companies import CompanyModel
 from app.repositories.base import BaseRepository
 from app.schemes.companies import SCompanyGet
 
-class CompanyRepository(BaseRepository[CompanyModel, SCompanyGet]):
+class CompaniesRepository(BaseRepository[CompanyModel, SCompanyGet]):
     model = CompanyModel
     schema = SCompanyGet
     

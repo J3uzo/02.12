@@ -5,7 +5,7 @@ from app.models.stages import StageModel
 from app.repositories.base import BaseRepository
 from app.schemes.stages import SStageGet
 
-class StageRepository(BaseRepository[StageModel, SStageGet]):
+class StagesRepository(BaseRepository[StageModel, SStageGet]):
     model = StageModel
     schema = SStageGet
     

@@ -4,9 +4,9 @@ from sqlalchemy.orm import selectinload
 from app.models.customers import CustomerModel
 from app.repositories.base import BaseRepository
 from app.schemes.customers import SCustomerGet
-from app.schemes.relations import SCustomerGetWithRels
+from app.schemes.relations_users_roles import SCustomerGetWithRels
 
-class CustomerRepository(BaseRepository[CustomerModel, SCustomerGet]):
+class CustomersRepository(BaseRepository[CustomerModel, SCustomerGet]):
     model = CustomerModel
     schema = SCustomerGet
     
